@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title>Tastier Grammar</title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1404.47">
+  <style type="text/css">
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; line-height: 14.0px; font: 12.0px Courier; color: #000000; -webkit-text-stroke: #000000}
+    span.s1 {font-kerning: none}
+    span.s2 {font-kerning: none; color: #000000}
+  </style>
+</head>
+<body>
+<h2 style="margin: 0.0px 0.0px 14.9px 0.0px; line-height: 22.0px; font: 18.0px Times; color: #000000; -webkit-text-stroke: #000000"><span class="s1"><b>Tastier Grammar</b></span></h2>
+<p class="p2"><span class="s1">Tastier =<span class="Apple-converted-space">    </span>"program" ident "{" {VarDecl} {ProcDecl} "}"</span></p>
+<p class="p2"><span class="s1"><br>
+</span></p>
+<p class="p2"><span class="s1">VarDecl =<span class="Apple-converted-space">    </span>Type ident {"," ident} ";"</span></p>
+<p class="p2"><span class="s1">ProcDecl = <span class="Apple-converted-space">  </span>"void" ident "(" ")"</span></p>
+<p class="p2"><span class="s2"><span class="Apple-converted-space">             </span></span><span class="s1">"{" {VarDecl} {ProcDecl} Stat {Stat} "}"</span></p>
+<p class="p2"><span class="s1"><br>
+</span></p>
+<p class="p2"><span class="s1">Type = <span class="Apple-converted-space">      </span>"int" | "bool"</span></p>
+<p class="p2"><span class="s1"><br>
+</span></p>
+<p class="p2"><span class="s1">Stat = <span class="Apple-converted-space">      </span>ident (":=" Expr ";" | "(" ")" ";")</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "if" Expr Stat ["else" Stat]</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "while Expr Stat</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "read" ident ";"</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "write" Expr | string ";"</span></p>
+<p class="p2"><span class="s2"><span class="Apple-converted-space">           </span>| </span><span class="s1">"writeln" Expr ";"</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "{" {VarDecl} Stat {Stat} ”}”</span></p>
+<p class="p2"><span class="s1"><br>
+</span></p>
+<p class="p2"><span class="s1">Expr = <span class="Apple-converted-space">      </span>SimExpr [RelOp SimExpr]</span></p>
+<p class="p2"><span class="s1">SimExpr =<span class="Apple-converted-space">    </span>Term {AddOp Term}</span></p>
+<p class="p2"><span class="s1">Term = <span class="Apple-converted-space">      </span>Primary {MulOp Primary}</span></p>
+<p class="p2"><span class="s1">Primary =<span class="Apple-converted-space">    </span>(ident | number | "-" Primary<span class="Apple-converted-space"> </span></span></p>
+<p class="p2"><span class="s2"><span class="Apple-converted-space">             </span>| </span><span class="s1">"true" | "false" | "(" Expr ")")</span></p>
+<p class="p2"><span class="s1"><br>
+</span></p>
+<p class="p2"><span class="s1">AddOp =<span class="Apple-converted-space">      </span>"+" | "-"</span></p>
+<p class="p2"><span class="s1">MulOp =<span class="Apple-converted-space">      </span>"*" | "div" | "DIV" | "mod" | "MOD"</span></p>
+<p class="p2"><span class="s1">RelOp =<span class="Apple-converted-space">      </span>"=" | "&lt;" | "&gt;" | "|=" | "&lt;=" | "&gt;="</span></p>
+</body>
+</html>
