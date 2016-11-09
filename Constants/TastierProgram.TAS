@@ -1,0 +1,45 @@
+// program to read integer values n (n > 0) from the console
+// and, for each one, print the sum of the values from 1 to n
+
+program Test {
+  const int k, j;
+  const bool var;
+
+  int i;
+
+   void SumUp() {
+      int j, sum;
+
+      void Subtract() {
+         i := i - 1;
+      }
+
+      void Add() {
+         if i > 0 {
+            sum := sum + i;
+            Subtract();
+            Add();
+         }
+      }
+
+      j := i;
+      k := 1;
+      var := true;
+      sum := 0;
+      Add();
+      write "The sum of the values from 1 to ";
+      write j; write " is ";
+      writeln sum;
+   }
+
+   void main() {
+      write "Enter value for i (or 0 to stop): ";
+      read i;
+
+      while i > 0 {
+         SumUp();
+         write "Enter value for i (or 0 to stop): ";
+         read i;
+      }
+   }
+}

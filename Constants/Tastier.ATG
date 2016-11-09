@@ -1,0 +1,387 @@
+COMPILER Tastier
+
+   const int // object kinds
+      var = 0, proc = 1, constant =3;
+
+   const int // types
+      undef = 0, integer = 1, boolean = 2;
+
+   public SymbolTable tab;
+   public CodeGenerator gen;
+  
+/*-------------------------------------------------------------------------------------------*/
+
+CHARACTERS
+
+  cr  = '\r'.
+  lf  = '\n'.
+  tab = '\t'.
+  digit = "0123456789".
+  letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
+  stringCh = ANY - '"' - '\\' - cr - lf - tab.
+  printableCh = '\u0020' .. '\u007e'.
+
+/*-------------------------------------------------------------------------------------------*/
+
+TOKENS
+
+  number = digit { digit }.
+  ident = letter { letter | digit }.
+  string = '"' {stringCh | '\\' printableCh} '"'.
+
+/*-------------------------------------------------------------------------------------------*/
+
+COMMENTS FROM "//" TO lf
+COMMENTS FROM "/*" TO "*/" NESTED
+
+/*-------------------------------------------------------------------------------------------*/
+
+IGNORE cr + lf + tab
+
+/*-------------------------------------------------------------------------------------------*/
+
+PRODUCTIONS
+
+AddOp<out Op op>
+=                        (. op = Op.ADD; .)
+  ( '+'
+  | '-'                  (. op = Op.SUB; .)
+  )
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+Expr<out int reg,        // load value of Expr into register
+     out int type>       (. int typeR, regR; Op op; .)
+  = SimExpr<out reg,
+            out type>
+  [ RelOp<out op>
+    SimExpr<out regR,
+            out typeR>   (.
+                            if (type == typeR) {
+                               type = boolean;
+                               gen.RelOp(op, reg, regR);
+                            }
+                            else SemErr("incompatible types");
+                         .)
+   ]                     (. gen.ClearRegisters(); .)
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+Primary<out int reg,     // load Primary into register
+        out int type>    (. int n; Obj obj; string name; .)
+=                        (.
+                            type = undef;
+                            reg = gen.GetRegister();
+                         .)
+  ( Ident<out name>      (.
+                            obj = tab.Find(name); type = obj.type;
+                            if (obj.kind == var) {
+                               if (obj.level == 0)
+                                  gen.LoadGlobal(reg, obj.adr, name);
+                               else
+                                  gen.LoadLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+                               if (type == boolean)
+                               // reset Z flag in CPSR
+                                  gen.ResetZ(reg);
+                            }
+                            else SemErr("variable/const expected");
+                         .)
+
+  | number               (.
+                            type = integer;
+                            n = Convert.ToInt32(t.val);
+                            gen.LoadConstant(reg, n);
+                         .)
+
+  | '-'
+    Primary<out reg,
+            out type>     (.
+                            if (type == integer)
+                               gen.NegateValue(reg);
+                            else SemErr("integer type expected");
+                         .)
+
+  | "true"               (.
+                               type = boolean;
+                               gen.LoadTrue(reg);
+                         .)
+
+  | "false"              (.
+                               type = boolean;
+                               gen.LoadFalse(reg);
+                         .)
+
+  | '('
+    Expr<out reg,
+         out type>
+    ')'
+
+  )
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+Ident<out string name>
+= ident                  (. name = t.val; .)
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+String<out string text>
+= string                  (. text = t.val; .)
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+MulOp<out Op op>
+=                        (. op = Op.MUL; .)
+  ( '*'
+  | ("div" | "DIV")      (. op = Op.DIV; .)
+  | ("mod" | "MOD")      (. op = Op.MOD; .)
+  )
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+ProcDecl<string progName>
+                         (. Obj obj; string procName; .)
+= "void"
+  Ident<out procName>    (.
+                            obj = tab.NewObj(procName, proc, undef);
+                            if (procName == "main")
+                               if (tab.curLevel == 0)
+                                  tab.mainPresent = true;
+                               else SemErr("main not at lexic level 0");
+                            tab.OpenScope();
+                         .)
+  '(' ')'
+  '{'
+     { 
+      ConstantDecl
+     }
+     {
+      VarDecl 
+      }
+     {
+     ProcDecl<progName>
+     }                   (.
+                            if (procName == "main")
+                               gen.Label("Main", "Body");
+                            else {
+                               gen.ProcNameComment(procName);
+                               gen.Label(procName, "Body");
+                            }
+                         .)
+     Stat { Stat }
+  '}'                    (.
+                            if (procName == "main") {
+                               gen.StopProgram(progName);
+                               gen.Enter("Main", tab.curLevel, tab.topScope.nextAdr);
+                            } else {
+                               gen.Return(procName);
+                               gen.Enter(procName, tab.curLevel, tab.topScope.nextAdr);
+                            }
+                            tab.CloseScope();
+                         .)
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+RelOp<out Op op>
+=                        (. op = Op.EQU; .)
+  ( "="
+  | '<'                  (. op = Op.LSS; .)
+  | '>'                  (. op = Op.GTR; .)
+  | "!="                 (. op = Op.NEQ; .)
+  | "<="                 (. op = Op.LEQ; .)
+  | ">="                 (. op = Op.GEQ; .)
+  )
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+SimExpr<out int reg,     //load value of SimExpr into register
+        out int type>    (. int typeR, regR; Op op; .)
+= Term<out reg,
+       out type>
+  { AddOp<out op>
+    Term<out regR,
+         out typeR>      (.
+                            if (type == integer && typeR == integer)
+                               gen.AddOp(op, reg, regR);
+                            else SemErr("integer type expected");
+                         .)
+  }
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+Stat                     (. int type; string name; Obj obj; int reg; .)
+= Ident<out name>        (. obj = tab.Find(name); .)
+  ( ":="                 (.
+                            if (obj.kind == proc || (obj.kind == constant && obj.assigned) )
+				if(obj.kind != constant)
+                               SemErr("cannot assign to procedure");
+				else
+					SemErr("Cannot re-asign already assigned constant");
+                         .)
+    Expr<out reg,
+         out type> ';'   (.
+                            if (type == obj.type)
+                               if (obj.level == 0)
+                                  gen.StoreGlobal(reg, obj.adr, name);
+                               else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+                         .)
+  | '(' ')' ';'          (.
+                            if (obj.kind == proc)
+                               gen.Call(name);
+                            else SemErr("object is not a procedure");
+                         .)
+  )
+
+| "if"                   (. int l1, l2; l1 = 0; .)
+  Expr<out reg,
+       out type>         (.
+                            if (type == boolean) {
+                               l1 = gen.NewLabel();
+                               gen.BranchFalse(l1);
+                            }
+                            else SemErr("boolean type expected");
+                         .)
+      Stat               (.
+                            l2 = gen.NewLabel();
+                            gen.Branch(l2);
+                            gen.Label(l1);
+                         .)
+      [ "else"
+      Stat
+      ]               	 (. gen.Label(l2); .)
+
+| "while"                (.
+                            int l1, l2;
+                            l1 = gen.NewLabel();
+                            gen.Label(l1); l2=0;
+                         .)
+  Expr<out reg,
+       out type>         (.
+                            if (type == boolean) {
+                               l2 = gen.NewLabel();
+                               gen.BranchFalse(l2);
+                            }
+                            else SemErr("boolean type expected");
+                         .)
+   Stat                  (.
+                            gen.Branch(l1);
+                            gen.Label(l2);
+                         .)
+
+| "read"
+  Ident<out name> ';'    (.
+                            obj = tab.Find(name);
+                            if (obj.type == integer) {
+                               gen.ReadInteger(); 
+                               if (obj.level == 0)
+                                  gen.StoreGlobal(0, obj.adr, name);
+                               else gen.StoreLocal(0, tab.curLevel-obj.level, obj.adr, name);
+                            }
+                            else SemErr("integer type expected");
+                         .)
+
+| "write"                (. string text; .)
+  (
+    Expr<out reg,
+         out type>       (.
+                            switch (type) {
+                               case integer: gen.WriteInteger(reg, false);
+                                             break; 
+                               case boolean: gen.WriteBoolean(false);
+                                             break;
+                            }
+                         .)
+  | String<out text>     (. gen.WriteString(text); .)
+  )
+  ';'
+
+| "writeln"
+  // note - for strings use write with \n in text
+  Expr<out reg,
+       out type>           (.
+                              switch (type) {
+                                 case integer: gen.WriteInteger(reg, true);
+                                               break;
+                                 case boolean: gen.WriteBoolean(true);
+                                               break;
+                              }
+                           .)
+  ';'
+
+| '{'                      (. tab.OpenSubScope(); .)
+  { ConstantDecl }
+  { VarDecl }
+  Stat { Stat }
+  '}'                      (. tab.CloseSubScope(); .)
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+Tastier                  (. string progName; .)
+  = "program"
+  Ident<out progName>    (. tab.OpenScope(); .)
+  '{'
+    { ConstantDecl }
+    { VarDecl }          // global variables
+    { ProcDecl<progName> }
+                         (. tab.CloseScope(); .)
+  '}'
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+Term<out int reg,        // load value of Term into register
+     out int type>       (. int typeR, regR; Op op; .)
+  = Primary<out reg,
+            out type>
+  { MulOp<out op>
+    Primary<out regR,
+            out typeR>
+                         (.
+                            if (type == integer && typeR == integer)
+                               gen.MulOp(op, reg, regR);
+                            else SemErr("integer type expected");
+                         .)
+  }
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+Type<out int type>
+=                        (. type = undef; .)
+ ( "int"                 (. type = integer; .)
+ | "bool"                (. type = boolean; .)
+ )
+.
+
+/*-------------------------------------------------------------------------------------------*/
+
+VarDecl                  (. string name; int type; .)
+= Type<out type>
+  Ident<out name>        (. tab.NewObj(name, var, type); .)
+  { ","
+    Ident<out name>      (. tab.NewObj(name, var, type); .)
+  } ";"
+.
+/*-------------------------------------------------------------------------------------------*/
+
+
+ConstantDecl             (. string name; int type; .)
+= "const" 
+  Type<out type>
+  Ident<out name>        (. tab.NewObj(name, constant, type); .)
+  { ","
+    Ident<out name>      (. tab.NewObj(name, constant, type); .)
+  }";"
+.
+
+END Tastier.
