@@ -21,6 +21,9 @@ AddBody
     MOVLE   R5, #0
     MOVS    R5, R5          ; reset Z flag in CPSR
     BEQ     L1              ; jump on condition false
+    B       L2
+L1
+L2
     MOV     R0, BP          ; load current base pointer
     LDR     R0, [R0,#8]
     ADD     R0, R0, #16
@@ -39,9 +42,6 @@ AddBody
     ADD     R0, PC, #4      ; store return address
     STR     R0, [TOP]       ; in new stack frame
     B       Add
-    B       L2
-L1
-L2
     MOV     TOP, BP         ; reset top of stack
     LDR     BP, [TOP,#12]   ; and stack base pointers
     LDR     PC, [TOP]       ; return from Add
@@ -93,6 +93,10 @@ SumUp
     LDR     R1, =2          ; number of local variables
     BL      enter           ; build new stack frame
     B       SumUpBody
+;Name:j Const:True Type:intr Kind:var, Level:local
+;Name:sum Const:True Type:intr Kind:var, Level:local
+;Name:Subtract Const:False Type:undef Kind:proc, Level:local
+;Name:Add Const:False Type:undef Kind:proc, Level:local
 MainBody
     ADD     R0, PC, #4      ; string address
     BL      TastierPrintString
@@ -130,3 +134,9 @@ Main
     LDR     R1, =0          ; number of local variables
     BL      enter           ; build new stack frame
     B       MainBody
+;Name:k Const:True Type:intr Kind:const, Level:globul
+;Name:j Const:False Type:intr Kind:const, Level:globul
+;Name:var Const:True Type:bool Kind:const, Level:globul
+;Name:i Const:True Type:intr Kind:var, Level:globul
+;Name:SumUp Const:False Type:undef Kind:proc, Level:globul
+;Name:main Const:False Type:undef Kind:proc, Level:globul

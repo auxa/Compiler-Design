@@ -13,20 +13,16 @@ public class Obj { // properties of declared symbol
    public Obj outer;   // ptr to enclosing scope
    public Obj locals;  // ptr to locally declared objects
    public int nextAdr; // next free address in scope
-   public bool assigned = false; // true if a constant
-   public int dimension; //number of dimensions if array
+   public bool assigned = false;
 }
 
 public class SymbolTable {
 
    const int // object kinds
-      var = 0, proc = 1, scope = 2, constant =3, array =4; 
+      var = 0, proc = 1, scope = 2, constant =3, array=4; 
 
    const int // types
       undef = 0, integer = 1, boolean = 2;
-
-        public bool //if constant or not
-                    normal = true, array = false;
 
    public Obj topScope; // topmost procedure scope
    public int curLevel; // nesting level of current scope
@@ -65,9 +61,45 @@ public class SymbolTable {
 
 // close current scope
    public void CloseScope() {
-      topScope = topScope.outer;
-      curLevel--;
-   }
+            Obj holder = topScope.locals;
+
+            int type, kind, scope;
+            string nameType, nameKind, scopeName;
+
+            while (holder != null)
+            {
+                type = holder.type;
+                kind = holder.kind;
+                scope = holder.level;
+              if (scope == 0)
+                    scopeName = "globul";
+                else
+                    scopeName = "local";
+
+                if (kind == 0)
+                    nameKind = "var";
+                else if (kind == 1)
+                    nameKind = "proc";
+                else if (kind == 2)
+                    nameKind = "scope";
+                else
+                    nameKind = "const";
+
+                if (type == 0)
+                    nameType = "undef";
+                else if (type == 1)
+                    nameType = "intr";
+                else
+                    nameType = "bool";
+
+                Console.WriteLine(";Name:{0} Const:{1} Type:{2} Kind:{3}, Level:{4}", holder.name, holder.assigned, nameType, nameKind, scopeName );
+
+                holder = holder.next;
+            }
+
+            topScope = topScope.outer;
+            curLevel--;
+        }
 
 // open new sub-scope and make it the current scope (topScope)
    public void OpenSubScope() {
@@ -105,10 +137,8 @@ public class SymbolTable {
       }
       if (last == null)
          topScope.locals = obj; else last.next = obj;
-      if (kind == var || kind == array){
+      if (kind == var)
          obj.adr = topScope.nextAdr++;
-	 obj.assigned= false;
-      }
       return obj;
    }
 

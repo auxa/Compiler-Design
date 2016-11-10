@@ -1,7 +1,7 @@
 COMPILER Tastier
 
    const int // object kinds
-      var = 0, proc = 1, constant =3;
+      var = 0, proc = 1, constant =3, array =4;
 
    const int // types
       undef = 0, integer = 1, boolean = 2;
@@ -49,12 +49,7 @@ AddOp<out Op op>
   )
 .
 
-/*-------------------------------------------------------------------------------------------*/
-ArrayIndex<out int dimension>  (. int dimension=0, int type;.)
-= "[" 
-	Expr<out reg, out type> "]" (. if (type != integer) SemErr("Index must integer");
-		dimension++; .)
-.
+
 /*-------------------------------------------------------------------------------------------*/
 Expr<out int reg,        // load value of Expr into register
      out int type>       (. int typeR, regR; Op op; .)
@@ -392,16 +387,31 @@ ConstantDecl             (. string name; int type; .)
   }";"
 .
 /*-------------------------------------------------------------------------------------------*/
-ArrayDecl<int kind>    (. int type, dim; string name; Obj obj; .)
+ArrayDecl    (. bool instansiated = false; int type, reg; string name; Obj obj;  .)
 = "array"
-	Type<out type>  [ "[]" (. kind=array; .) ]
-	Ident<out name> (.   obj= tab.NewObj(name, kind, type, dim); .)
-	
-	ArrayIndex<out dimension>   
-	";"     (. if(obj.type == type) 
+	Type<out type> 
+	Ident<out name> (.   obj= tab.NewObj(name, array, type); .)
+	[
+		":={"
+		Expr<out reg,
+  		       out type>	   
+		  (. if(obj.type == type) 
 			if(obj.level == 0)
-				gen.storeIndexedGlobal(reg, obj.address, 0, name);
-			gen.storeIndexedLocal(reg, tab.curLevel-obj.level, obj.address, 0, name);
+				gen.StoreIndexedGlobal(reg, obj.adr, 0, name);
+			else
+				gen.StoreIndexedLocal(reg, tab.curLevel-obj.level, obj.adr, 0, name);
+
+			instansiated =true;
 		.)
+		{ ","
+			Expr<out reg,
+      			   out type>		
+		}
+	]
+	";" (. if(obj.kind == array)
+		if(!instansiated)
+			SemErr("Please put something in the array"); .)
+
+
 .
 END Tastier.
