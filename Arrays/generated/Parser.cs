@@ -301,7 +301,7 @@ out type);
 		Obj obj; string procName; 
 		Expect(15);
 		Ident(out procName);
-		obj = tab.NewObj(procName, proc, undef);
+		obj = tab.NewObj(procName, proc, undef, -1);
 		if (procName == "main")
 		  if (tab.curLevel == 0)
 		     tab.mainPresent = true;
@@ -311,14 +311,11 @@ out type);
 		Expect(8);
 		Expect(9);
 		Expect(16);
-		while (la.kind == 36) {
+		while (la.kind == 37) {
 			ConstantDecl();
 		}
-		while (la.kind == 33 || la.kind == 34) {
+		while (la.kind == 35 || la.kind == 36) {
 			VarDecl();
-		}
-		while (la.kind == 37) {
-			ArrayDecl();
 		}
 		while (la.kind == 15) {
 			ProcDecl(progName);
@@ -348,69 +345,50 @@ out type);
 
 	void ConstantDecl() {
 		string name; int type; 
-		Expect(36);
-		Type(out type);
-		Ident(out name);
-		tab.NewObj(name, constant, type); 
-		while (la.kind == 35) {
-			Get();
-			Ident(out name);
-			tab.NewObj(name, constant, type); 
-		}
-		Expect(25);
-	}
-
-	void VarDecl() {
-		string name; int type; 
-		Type(out type);
-		Ident(out name);
-		tab.NewObj(name, var, type); 
-		while (la.kind == 35) {
-			Get();
-			Ident(out name);
-			tab.NewObj(name, var, type); 
-		}
-		Expect(25);
-	}
-
-	void ArrayDecl() {
-		bool instansiated = false; int type, reg; string name; Obj obj;  
 		Expect(37);
 		Type(out type);
 		Ident(out name);
-		obj= tab.NewObj(name, array, type); 
-		if (la.kind == 38) {
+		tab.NewObj(name, constant, type, -1); 
+		while (la.kind == 38) {
 			Get();
-			Expr(out reg,
-   out type);
-			if(obj.type == type) 
-			if(obj.level == 0)
-			gen.StoreIndexedGlobal(reg, obj.adr, 0, name);
-			else
-			gen.StoreIndexedLocal(reg, tab.curLevel-obj.level, obj.adr, 0, name);
-			
-			instansiated =true;
-			
-			while (la.kind == 35) {
-				Get();
-				Expr(out reg,
-   out type);
-			}
-			Expect(17);
+			Ident(out name);
+			tab.NewObj(name, constant, type, -1); 
 		}
-		Expect(25);
-		if(obj.kind == array)
-		if(!instansiated)
-		SemErr("Please put something in the array"); 
+		Expect(27);
+	}
+
+	void VarDecl() {
+		string name; int type, size= -1; 
+		Type(out type);
+		if (la.kind == 24) {
+			Get();
+			type=array; 
+			Expect(1);
+			size= Convert.ToInt32(t.val)-1; 
+			
+			Expect(25);
+		}
+		Ident(out name);
+		tab.NewObj(name, var, type, size); 
+		Expect(27);
 	}
 
 	void Stat() {
-		int type; string name; Obj obj; int reg; 
+		int type; string name; Obj obj; int reg = 0, index1 = 0; string arrayName;  
 		switch (la.kind) {
 		case 2: {
 			Ident(out name);
 			obj = tab.Find(name); 
 			if (la.kind == 24) {
+				Get();
+				Expect(1);
+				index1 = Convert.ToInt32(t.val);
+				if(index1 > obj.index | index1 < 0)
+				 SemErr("Wrong index");
+				
+				Expect(25);
+			}
+			if (la.kind == 26) {
 				Get();
 				if (obj.kind == proc || (obj.kind == constant && obj.assigned) ){
 				if(obj.kind != constant)
@@ -419,31 +397,63 @@ out type);
 				SemErr("Cannot re-asign already assigned constant");
 				}	
 				
-				Expr(out reg,
+				if (StartOf(3)) {
+					Expr(out reg,
 out type);
-				Expect(25);
-				if (type == obj.type){
-				  if (obj.level == 0)
-				           gen.StoreGlobal(reg, obj.adr, name);
-				  else 
-				gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
-				}
-				if(obj.kind == constant){
-				obj.assigned=true;
-				}
-				
+					if (type == obj.type){
+					  if (obj.level == 0)
+					           gen.StoreGlobal(reg, obj.adr, name);
+					  else 
+					gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+					}
+					if(obj.kind == constant){
+					obj.assigned=true;
+					}
+					
+				} else if (la.kind == 24) {
+					Get();
+					int arrayIndex = 0; 
+					Expect(1);
+					index1 = Convert.ToInt32(t.val); 
+					Expect(25);
+					Ident(out arrayName);
+					Obj holder1 = tab.Find(arrayName);
+					
+					if(arrayIndex > holder1.index || arrayIndex < 0)
+					 SemErr("Array index out of bounds");
+					
+					if(holder1.type != obj.type){
+					 SemErr("Wrong types");
+					}
+					
+					if (holder1.kind == var || holder1.kind == constant) {
+					  if (holder1.level == 0)
+					     gen.LoadGlobal(reg, holder1.adr + arrayIndex, arrayName);
+					  else
+					     gen.LoadLocal(reg, tab.curLevel-obj.level, holder1.adr + arrayIndex, arrayName);
+					  
+					if (obj.type == boolean){ gen.ResetZ(reg); }
+					
+					     if (obj.level == 0)
+					       gen.StoreGlobal(reg, obj.adr + index1, name);
+					     else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr + index1, name);
+					       obj.assigned = true;
+					}
+					
+				} else SynErr(44);
+				Expect(27);
 			} else if (la.kind == 8) {
 				Get();
 				Expect(9);
-				Expect(25);
+				Expect(27);
 				if (obj.kind == proc)
 				  gen.Call(name);
 				else SemErr("object is not a procedure");
 				
-			} else SynErr(44);
+			} else SynErr(45);
 			break;
 		}
-		case 26: {
+		case 28: {
 			Get();
 			int l1, l2; l1 = 0; 
 			Expr(out reg,
@@ -458,14 +468,14 @@ out type);
 			gen.Branch(l2);
 			gen.Label(l1);
 			
-			if (la.kind == 27) {
+			if (la.kind == 29) {
 				Get();
 				Stat();
 			}
 			gen.Label(l2); 
 			break;
 		}
-		case 28: {
+		case 30: {
 			Get();
 			int l1, l2;
 			l1 = gen.NewLabel();
@@ -485,10 +495,10 @@ out type);
 			
 			break;
 		}
-		case 29: {
+		case 31: {
 			Get();
 			Ident(out name);
-			Expect(25);
+			Expect(27);
 			obj = tab.Find(name);
 			if (obj.type == integer) {
 			  gen.ReadInteger(); 
@@ -500,7 +510,7 @@ out type);
 			
 			break;
 		}
-		case 30: {
+		case 32: {
 			Get();
 			string text; 
 			if (StartOf(3)) {
@@ -516,11 +526,11 @@ out type);
 			} else if (la.kind == 3) {
 				String(out text);
 				gen.WriteString(text); 
-			} else SynErr(45);
-			Expect(25);
+			} else SynErr(46);
+			Expect(27);
 			break;
 		}
-		case 31: {
+		case 33: {
 			Get();
 			Expr(out reg,
 out type);
@@ -531,28 +541,26 @@ out type);
 			                break;
 			}
 			
-			Expect(25);
+			Expect(27);
 			break;
 		}
 		case 16: {
 			Get();
 			tab.OpenSubScope(); 
 			while (StartOf(4)) {
-				if (la.kind == 36) {
+				if (la.kind == 37) {
 					ConstantDecl();
-				} else if (la.kind == 33 || la.kind == 34) {
+				} else if (la.kind == 35 || la.kind == 36) {
 					VarDecl();
-				} else if (StartOf(2)) {
-					Stat();
 				} else {
-					ArrayDecl();
+					Stat();
 				}
 			}
 			Expect(17);
 			tab.CloseSubScope(); 
 			break;
 		}
-		default: SynErr(46); break;
+		default: SynErr(47); break;
 		}
 	}
 
@@ -574,18 +582,15 @@ out typeR);
 
 	void Tastier() {
 		string progName; 
-		Expect(32);
+		Expect(34);
 		Ident(out progName);
 		tab.OpenScope(); 
 		Expect(16);
-		while (StartOf(6)) {
-			if (la.kind == 36) {
-				ConstantDecl();
-			} else if (la.kind == 33 || la.kind == 34) {
-				VarDecl();
-			} else {
-				ArrayDecl();
-			}
+		while (la.kind == 37) {
+			ConstantDecl();
+		}
+		while (la.kind == 35 || la.kind == 36) {
+			VarDecl();
 		}
 		while (la.kind == 15) {
 			ProcDecl(progName);
@@ -596,13 +601,13 @@ out typeR);
 
 	void Type(out int type) {
 		type = undef; 
-		if (la.kind == 33) {
+		if (la.kind == 35) {
 			Get();
 			type = integer; 
-		} else if (la.kind == 34) {
+		} else if (la.kind == 36) {
 			Get();
 			type = boolean; 
-		} else SynErr(47);
+		} else SynErr(48);
 	}
 
 
@@ -619,11 +624,10 @@ out typeR);
 	static readonly bool[,] set = {
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
-		{x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,T,x, T,T,T,T, x,x,x,x, x,x,x,x, x},
+		{x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, T,x,T,T, T,T,x,x, x,x,x,x, x},
 		{x,T,T,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
-		{x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,T,x, T,T,T,T, x,T,T,x, T,T,x,x, x},
-		{x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
-		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,x, T,T,x,x, x}
+		{x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, T,x,T,T, T,T,x,T, T,T,x,x, x},
+		{x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x}
 
 	};
 } // end Parser
@@ -661,21 +665,21 @@ public class Errors {
 			case 21: s = "\"!=\" expected"; break;
 			case 22: s = "\"<=\" expected"; break;
 			case 23: s = "\">=\" expected"; break;
-			case 24: s = "\":=\" expected"; break;
-			case 25: s = "\";\" expected"; break;
-			case 26: s = "\"if\" expected"; break;
-			case 27: s = "\"else\" expected"; break;
-			case 28: s = "\"while\" expected"; break;
-			case 29: s = "\"read\" expected"; break;
-			case 30: s = "\"write\" expected"; break;
-			case 31: s = "\"writeln\" expected"; break;
-			case 32: s = "\"program\" expected"; break;
-			case 33: s = "\"int\" expected"; break;
-			case 34: s = "\"bool\" expected"; break;
-			case 35: s = "\",\" expected"; break;
-			case 36: s = "\"const\" expected"; break;
-			case 37: s = "\"array\" expected"; break;
-			case 38: s = "\":={\" expected"; break;
+			case 24: s = "\"[\" expected"; break;
+			case 25: s = "\"]\" expected"; break;
+			case 26: s = "\":=\" expected"; break;
+			case 27: s = "\";\" expected"; break;
+			case 28: s = "\"if\" expected"; break;
+			case 29: s = "\"else\" expected"; break;
+			case 30: s = "\"while\" expected"; break;
+			case 31: s = "\"read\" expected"; break;
+			case 32: s = "\"write\" expected"; break;
+			case 33: s = "\"writeln\" expected"; break;
+			case 34: s = "\"program\" expected"; break;
+			case 35: s = "\"int\" expected"; break;
+			case 36: s = "\"bool\" expected"; break;
+			case 37: s = "\"const\" expected"; break;
+			case 38: s = "\",\" expected"; break;
 			case 39: s = "??? expected"; break;
 			case 40: s = "invalid AddOp"; break;
 			case 41: s = "invalid RelOp"; break;
@@ -684,7 +688,8 @@ public class Errors {
 			case 44: s = "invalid Stat"; break;
 			case 45: s = "invalid Stat"; break;
 			case 46: s = "invalid Stat"; break;
-			case 47: s = "invalid Type"; break;
+			case 47: s = "invalid Stat"; break;
+			case 48: s = "invalid Type"; break;
 
 			default: s = "error " + n; break;
 		}

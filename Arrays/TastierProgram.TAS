@@ -1,16 +1,16 @@
 // program to read integer values n (n > 0) from the console
 // and, for each one, print the sum of the values from 1 to n
-
 program Test {
-  int joke, k;
-  bool var;
+  
+  int[3] holder;
+  
 
   int i;
-  const int temp23;
    void SumUp() {
-     
- int sum;
-         void Subtract() {
+      int j;
+      int sum;
+
+      void Subtract() {
          i := i - 1;
       }
 
@@ -21,25 +21,25 @@ program Test {
             Add();
          }
       }
-	
-      temp23 := 0;
-      joke := i;
-      k := 1;
-	k := k+ temp23;
-      var := true;
+
+      j := i;
+
+          
+      holder[0]:=1;
+      holder[1]:=2;
+      holder[2]:=3;
+  
       sum := 0;
       Add();
       write "The sum of the values from 1 to ";
-      write joke;
-      write " is ";
+      write j; write " is ";
       writeln sum;
    }
 
    void main() {
-      array int temp :={ 1,2,3};
       write "Enter value for i (or 0 to stop): ";
       read i;
-    
+
       while i > 0 {
          SumUp();
          write "Enter value for i (or 0 to stop): ";

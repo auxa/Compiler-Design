@@ -17,10 +17,8 @@
 <p class="p2"><span class="s1">Tastier =<span class="Apple-converted-space">    </span>"program" ident "{" {VarDecl} {ProcDecl} "}"</span></p>
 <p class="p2"><span class="s1"><br>
 </span></p>
-<p class="p2"><span class="s1">ArrayDecl =<span class="Apple-converted-space">    </span>"array" Type ident "{" ident {"," ident}  "};"</span></p>
-
 <p class="p2"><span class="s1">ConstDecl =<span class="Apple-converted-space">    </span>"const" Type ident {"," ident} ";"</span></p>
-<p class="p2"><span class="s1">VarDecl =<span class="Apple-converted-space">    </span>Type ident {"," ident} ";"</span></p>
+<p class="p2"><span class="s1">VarDecl =<span class="Apple-converted-space">    </span>Type [ "[" number "]" ] ident ";"</span></p>
 <p class="p2"><span class="s1">ProcDecl = <span class="Apple-converted-space">  </span>"void" ident "(" ")"</span></p>
 <p class="p2"><span class="s2"><span class="Apple-converted-space">             </span></span><span class="s1">"{" {VarDecl} {ProcDecl} Stat {Stat} "}"</span></p>
 <p class="p2"><span class="s1"><br>
@@ -28,7 +26,7 @@
 <p class="p2"><span class="s1">Type = <span class="Apple-converted-space">      </span>"int" | "bool"</span></p>
 <p class="p2"><span class="s1"><br>
 </span></p>
-<p class="p2"><span class="s1">Stat = <span class="Apple-converted-space">      </span>ident (":=" Expr ";" | "(" ")" ";")</span></p>
+<p class="p2"><span class="s1">Stat = <span class="Apple-converted-space">      </span>ident (":=" (Expr ";" | "[" number + "]" ";" | "(" ")" ";"))</span></p>
 <p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "if" Expr Stat ["else" Stat]</span></p>
 <p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "while Expr Stat</span></p>
 <p class="p2"><span class="s1"><span class="Apple-converted-space">           </span>| "read" ident ";"</span></p>

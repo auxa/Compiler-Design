@@ -149,7 +149,7 @@ ProcDecl<string progName>
                          (. Obj obj; string procName; .)
 = "void"
   Ident<out procName>    (.
-                            obj = tab.NewObj(procName, proc, undef);
+                            obj = tab.NewObj(procName, proc, undef, -1);
                             if (procName == "main")
                                if (tab.curLevel == 0)
                                   tab.mainPresent = true;
@@ -164,10 +164,7 @@ ProcDecl<string progName>
      {
       VarDecl 
       }
-     {
-	ArrayDecl
-     }
-     {
+          {
      ProcDecl<progName>
      }                   (.
                             if (procName == "main")
@@ -221,9 +218,19 @@ SimExpr<out int reg,     //load value of SimExpr into register
 
 /*-------------------------------------------------------------------------------------------*/
 
-Stat                     (. int type; string name; Obj obj; int reg; .)
+Stat                     (. int type; string name; Obj obj; int reg = 0, index1 = 0; string arrayName;  .)
 = Ident<out name>        (. obj = tab.Find(name); .)
-  ( ":="                 (.
+  [
+    "["
+        number          (.
+                          index1 = Convert.ToInt32(t.val);
+                          if(index1 > obj.index | index1 < 0)
+                            SemErr("Wrong index");
+                        .)
+    "]"
+  ]
+   (":="               
+			  (.
                             if (obj.kind == proc || (obj.kind == constant && obj.assigned) ){
 				if(obj.kind != constant)
                                         SemErr("cannot assign to procedure");
@@ -231,8 +238,8 @@ Stat                     (. int type; string name; Obj obj; int reg; .)
 					SemErr("Cannot re-asign already assigned constant");
 				}	
                          .)
-    Expr<out reg,
-         out type> ';'   (.
+   ( Expr<out reg,
+         out type>    (.
                             if (type == obj.type){
                                if (obj.level == 0)
                                         gen.StoreGlobal(reg, obj.adr, name);
@@ -243,7 +250,38 @@ Stat                     (. int type; string name; Obj obj; int reg; .)
 			      	   obj.assigned=true;
 				}
                          .)
-  | '(' ')' ';'          (.
+
+        | "["                (. int arrayIndex = 0; .)
+          number             (. index1 = Convert.ToInt32(t.val); .)
+          "]"
+          Ident<out arrayName> (.
+                              Obj holder1 = tab.Find(arrayName);
+
+                              if(arrayIndex > holder1.index || arrayIndex < 0)
+                                SemErr("Array index out of bounds");
+
+                              if(holder1.type != obj.type){
+                                SemErr("Wrong types");
+                              }
+
+                              if (holder1.kind == var || holder1.kind == constant) {
+                                 if (holder1.level == 0)
+                                    gen.LoadGlobal(reg, holder1.adr + arrayIndex, arrayName);
+                                 else
+                                    gen.LoadLocal(reg, tab.curLevel-obj.level, holder1.adr + arrayIndex, arrayName);
+                                 
+				if (obj.type == boolean){ gen.ResetZ(reg); }
+
+                                    if (obj.level == 0)
+                                      gen.StoreGlobal(reg, obj.adr + index1, name);
+                                    else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr + index1, name);
+                                      obj.assigned = true;
+                              }
+                           .)
+        )';'
+
+
+   | '(' ')' ';'          (.
                             if (obj.kind == proc)
                                gen.Call(name);
                             else SemErr("object is not a procedure");
@@ -328,22 +366,21 @@ Stat                     (. int type; string name; Obj obj; int reg; .)
   ';'
 
 | '{'                      (. tab.OpenSubScope(); .)
-  { ConstantDecl | VarDecl | Stat | ArrayDecl }
+  { ConstantDecl| VarDecl | Stat }
   '}'                      (. tab.CloseSubScope(); .)
 .
-
 /*-------------------------------------------------------------------------------------------*/
 
 Tastier                  (. string progName; .)
   = "program"
   Ident<out progName>    (. tab.OpenScope(); .)
   '{'
-    { ConstantDecl | VarDecl | ArrayDecl }          // global variables
+    { ConstantDecl }
+    { VarDecl }          // global variables
     { ProcDecl<progName> }
                          (. tab.CloseScope(); .)
   '}'
 .
-
 /*-------------------------------------------------------------------------------------------*/
 
 Term<out int reg,        // load value of Term into register
@@ -372,51 +409,26 @@ Type<out int type>
 
 /*-------------------------------------------------------------------------------------------*/
 
-VarDecl                  (. string name; int type; .)
+VarDecl                  (. string name; int type, size= -1; .)
 = Type<out type>
-  Ident<out name>        (. tab.NewObj(name, var, type); .)
-  { ","
-    Ident<out name>      (. tab.NewObj(name, var, type); .)
-  } ";"
+  [
+	"["		(. type=array; .)
+		number  (. 
+			size= Convert.ToInt32(t.val)-1; 
+			.)
+	"]"
+  ]			
+  Ident<out name>        (. tab.NewObj(name, var, type, size); .)
+  ";"
 .
 /*-------------------------------------------------------------------------------------------*/
-
-
 ConstantDecl             (. string name; int type; .)
 = "const" 
   Type<out type>
-  Ident<out name>        (. tab.NewObj(name, constant, type); .)
+  Ident<out name>        (. tab.NewObj(name, constant, type, -1); .)
   { ","
-    Ident<out name>      (. tab.NewObj(name, constant, type); .)
+    Ident<out name>      (. tab.NewObj(name, constant, type, -1); .)
   }";"
 .
-/*-------------------------------------------------------------------------------------------*/
-ArrayDecl    (. bool instansiated = false; int type, reg; string name; Obj obj;  .)
-= "array"
-	Type<out type> 
-	Ident<out name> (.   obj= tab.NewObj(name, array, type); .)
-	[
-		":={"
-		Expr<out reg,
-  		       out type>	   
-		  (. if(obj.type == type) 
-			if(obj.level == 0)
-				gen.StoreIndexedGlobal(reg, obj.adr, 0, name);
-			else
-				gen.StoreIndexedLocal(reg, tab.curLevel-obj.level, obj.adr, 0, name);
 
-			instansiated =true;
-		.)
-		{ ","
-			Expr<out reg,
-      			   out type>		
-		}
-		"}"
-	]
-	";" (. if(obj.kind == array)
-		if(!instansiated)
-			SemErr("Please put something in the array"); .)
-
-
-.
 END Tastier.
