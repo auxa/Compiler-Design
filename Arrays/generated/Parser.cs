@@ -210,7 +210,7 @@ out int type) {
 		case 2: {
 			Ident(out name);
 			obj = tab.Find(name); type = obj.type;
-			if (obj.kind == var) {
+			if (obj.kind == var || obj.kind==constant) {
 			  if (obj.level == 0)
 			     gen.LoadGlobal(reg, obj.adr, name);
 			  else
@@ -396,6 +396,7 @@ out type);
 				Expr(out reg,
    out type);
 			}
+			Expect(17);
 		}
 		Expect(25);
 		if(obj.kind == array)
@@ -411,21 +412,25 @@ out type);
 			obj = tab.Find(name); 
 			if (la.kind == 24) {
 				Get();
-				if (obj.kind == proc || (obj.kind == constant && obj.assigned) )
+				if (obj.kind == proc || (obj.kind == constant && obj.assigned) ){
 				if(obj.kind != constant)
 				           SemErr("cannot assign to procedure");
 				else
 				SemErr("Cannot re-asign already assigned constant");
+				}	
 				
 				Expr(out reg,
 out type);
 				Expect(25);
-				if (type == obj.type)
+				if (type == obj.type){
 				  if (obj.level == 0)
 				           gen.StoreGlobal(reg, obj.adr, name);
 				  else 
 				gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+				}
+				if(obj.kind == constant){
 				obj.assigned=true;
+				}
 				
 			} else if (la.kind == 8) {
 				Get();
