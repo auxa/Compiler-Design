@@ -42,7 +42,7 @@ public class SymbolTable {
       undefObj.level = 0;
       undefObj.adr = 0;
       undefObj.next = null;
-      undefObj.assigned = true;
+      undefObj.assigned = false;
       this.parser = parser;
       mainPresent = false;
    }
@@ -128,7 +128,7 @@ public class SymbolTable {
       Obj obj = new Obj();
       obj.name = name; obj.kind = kind;
       obj.type = type; obj.level = curLevel; 
-      obj.next = null; 
+      obj.next = null;
       p = topScope.locals; last = null;
       while (p != null) { 
          if (p.name == name)

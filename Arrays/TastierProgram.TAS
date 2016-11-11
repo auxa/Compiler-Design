@@ -2,15 +2,15 @@
 // and, for each one, print the sum of the values from 1 to n
 
 program Test {
-  const int k, j;
-  const bool var;
+  int joke, k;
+  bool var;
 
   int i;
-
+  const int temp23;
    void SumUp() {
-      int j, sum;
-
-      void Subtract() {
+     
+ int sum;
+         void Subtract() {
          i := i - 1;
       }
 
@@ -21,14 +21,17 @@ program Test {
             Add();
          }
       }
-
-      j := i;
+	
+      temp23 := 0;
+      joke := i;
       k := 1;
+	k := k+ temp23;
       var := true;
       sum := 0;
       Add();
       write "The sum of the values from 1 to ";
-      write j; write " is ";
+      write joke;
+      write " is ";
       writeln sum;
    }
 

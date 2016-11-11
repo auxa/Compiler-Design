@@ -77,7 +77,7 @@ Primary<out int reg,     // load Primary into register
                          .)
   ( Ident<out name>      (.
                             obj = tab.Find(name); type = obj.type;
-                            if (obj.kind == var) {
+                            if (obj.kind == var || obj.kind==constant) {
                                if (obj.level == 0)
                                   gen.LoadGlobal(reg, obj.adr, name);
                                else
@@ -224,20 +224,24 @@ SimExpr<out int reg,     //load value of SimExpr into register
 Stat                     (. int type; string name; Obj obj; int reg; .)
 = Ident<out name>        (. obj = tab.Find(name); .)
   ( ":="                 (.
-                            if (obj.kind == proc || (obj.kind == constant && obj.assigned) )
+                            if (obj.kind == proc || (obj.kind == constant && obj.assigned) ){
 				if(obj.kind != constant)
                                         SemErr("cannot assign to procedure");
 				else
 					SemErr("Cannot re-asign already assigned constant");
+				}	
                          .)
     Expr<out reg,
          out type> ';'   (.
-                            if (type == obj.type)
+                            if (type == obj.type){
                                if (obj.level == 0)
                                         gen.StoreGlobal(reg, obj.adr, name);
                                else 
 					gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
-			      obj.assigned=true;
+				}
+				if(obj.kind == constant){
+			      	   obj.assigned=true;
+				}
                          .)
   | '(' ')' ';'          (.
                             if (obj.kind == proc)
