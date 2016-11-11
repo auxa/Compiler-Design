@@ -33,9 +33,10 @@ program Test {
    }
 
    void main() {
+      array int temp :={ 1,2,3};
       write "Enter value for i (or 0 to stop): ";
       read i;
-
+    
       while i > 0 {
          SumUp();
          write "Enter value for i (or 0 to stop): ";

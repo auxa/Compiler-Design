@@ -126,6 +126,11 @@ SumUp
 ;Name:sum Const:True Type:intr Kind:var, Level:local
 ;Name:Subtract Const:False Type:undef Kind:proc, Level:local
 ;Name:Add Const:False Type:undef Kind:proc, Level:local
+    LDR     R5, =1
+    ADD     R0, BP, #16
+    STR     R5, [R0, R0, LSL #2] ; value of temp[]
+    LDR     R5, =2
+    LDR     R5, =3
 MainBody
     ADD     R0, PC, #4      ; string address
     BL      TastierPrintString
@@ -163,6 +168,7 @@ Main
     LDR     R1, =0          ; number of local variables
     BL      enter           ; build new stack frame
     B       MainBody
+;Name:temp Const:False Type:intr Kind:const, Level:local
 ;Name:k Const:True Type:intr Kind:const, Level:globul
 ;Name:j Const:False Type:intr Kind:const, Level:globul
 ;Name:var Const:True Type:bool Kind:const, Level:globul

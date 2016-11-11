@@ -407,6 +407,7 @@ ArrayDecl    (. bool instansiated = false; int type, reg; string name; Obj obj; 
 			Expr<out reg,
       			   out type>		
 		}
+		"}"
 	]
 	";" (. if(obj.kind == array)
 		if(!instansiated)
