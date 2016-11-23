@@ -1,0 +1,66 @@
+// program to read integer values n (n > 0) from the console
+// and, for each one, print the sum of the values from 1 to n
+program Test {
+  
+  int[3] holder;
+  
+  int place;
+  int limit;
+  int doThis;
+  int i;
+  int x;
+  int y;
+   void SumUp() {
+      int j;
+      int sum;
+
+      void Subtract() {
+         i := i - 1;
+      }
+
+      void Add() {
+         if i > 0 {
+            sum := sum + i;
+            Subtract();
+            Add();
+         }
+      }
+
+
+      
+      limit :=5;
+      doThis:=1;
+      for (place:=1; place:=place+1; place<=limit)
+      do { doThis := doThis+1; } 
+
+     
+      x :=1;
+      y:= 2;
+      place:=<x<y>?x+1:y-1;
+
+
+      j := i;
+
+          
+      holder[0]:=1;
+      holder[1]:=2;
+      holder[2]:=3;
+  
+      sum := 0;
+      Add();
+      write "The sum of the values from 1 to ";
+      write j; write " is ";
+      writeln sum;
+   }
+
+   void main() {
+      write "Enter value for i (or 0 to stop): ";
+      read i;
+      
+      while i > 0 {
+         SumUp();
+         write "Enter value for i (or 0 to stop): ";
+         read i;
+      }
+   }
+}

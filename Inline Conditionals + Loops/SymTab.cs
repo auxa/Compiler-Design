@@ -13,7 +13,8 @@ public class Obj { // properties of declared symbol
    public Obj outer;   // ptr to enclosing scope
    public Obj locals;  // ptr to locally declared objects
    public int nextAdr; // next free address in scope
-   public bool assigned = false;
+   public bool assigned = false; // for constant redeclaration
+   public int index; //index if array
 }
 
 public class SymbolTable {
@@ -43,8 +44,10 @@ public class SymbolTable {
       undefObj.adr = 0;
       undefObj.next = null;
       undefObj.assigned = false;
+      undefObj.index=-1;
       this.parser = parser;
       mainPresent = false;
+   
    }
 
 // open new scope and make it the current scope (topScope)
@@ -123,12 +126,12 @@ public class SymbolTable {
    }
 
 // create new object node in current scope
-   public Obj NewObj(string name, int kind, int type) {
+   public Obj NewObj(string name, int kind, int type, int index) {
       Obj p, last; 
       Obj obj = new Obj();
       obj.name = name; obj.kind = kind;
       obj.type = type; obj.level = curLevel; 
-      obj.next = null;
+      obj.next = null; obj.index =index;
       p = topScope.locals; last = null;
       while (p != null) { 
          if (p.name == name)
@@ -137,14 +140,11 @@ public class SymbolTable {
       }
       if (last == null)
          topScope.locals = obj; else last.next = obj;
-        if (kind == var || kind == constant)
+      if (kind == var)
+         obj.adr = topScope.nextAdr++;
+            if (kind == array)
             {
-                obj.adr = topScope.nextAdr++;
-            }
-       if (kind == array)
-            {
-                obj.adr = topScope.nextAdr;
-                topScope.nextAdr += 1;
+                obj.nextAdr += (obj.index +1); //increment index
             }
       return obj;
    }
