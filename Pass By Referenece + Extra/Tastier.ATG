@@ -396,51 +396,33 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
 		  .)                 
 
 | "switch"		
-	 "("
+	 '('
 		Expr<out reg, out type>
- 	   ")"
-				(. int reg1, type1, reg2, type2, break;
-				   int l1=0; int l2=1; break =0;
-				   Obj holder = gen.newObj("switchVal", var, integer, 0);
+ 	   ')'
+				(. int reg1, type1, breakEnd;
+				   int l1=0; int l2=1; breakEnd =0;
 				if(type != integer){ 
 					SemErr ("The Switch acts on an Integer, Incorrect type Entered");
 				}
-				  if(obj.level ==0){
-					gen.StoreGlobal(reg, obj.adr, name);
-				}
-				else{
-					gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr , "switchVal");
-				}
 				.)
-	
-
-	"{"
+	'{'
 	{
-		"case" Expr<out reg1, out type1>
-			(.
-				if(type1 != integer){
-					SemErr("Incorrect type");
-				}
-				gen.RelOp(Op.EQU, reg, reg1);
-				l2 = gen.NewLabel();
-				gen.BranchFalse(l2);
-			.)
-			":"
-				[Stat]
-			["break"	(. gen.Branch(break); .) ]
-	}
-	[	"default" ":"
+           "case" Expr<out reg1, out type1>
+		(.
+			if(type1 != integer) SemErr("Incorrect type");
+			gen.RelOp(Op.EQU, reg, reg1);
+			l2 = gen.NewLabel();
+			gen.BranchFalse(l2);
+		.)
+		':' 
 		[Stat]
-		[ "break" 	(. gen.Branch(break);	.)	]
-		
-				
-				
-				
-				
-                                
-				
-			.)
-	}
+		["break;"	(. gen.Branch(breakEnd); .) ]
+
+	}	
+		["default:"
+		[Stat]		(. gen.Branch(breakEnd);	.)
+		]
+     '}'
 			
 
 | "read"

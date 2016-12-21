@@ -10,6 +10,7 @@ program Test {
   int i;
   int x;
   int y;
+  int variable;
    void SumUp() {
       int j;
       int sum;
@@ -40,6 +41,19 @@ program Test {
 
 
       j := i;
+      variable :=0;
+      switch(1)
+	{
+	 case 1 :
+        	variable := 1;
+                break;
+	 case 2 :
+		 variable := 1;
+		 break;	
+	 default:
+		 variable := 12;	
+	}	
+        
 
           
       holder[0]:=1;
@@ -54,6 +68,7 @@ program Test {
    }
 
    void main() {
+      
       write "Enter value for i (or 0 to stop): ";
       read i;
       
