@@ -325,6 +325,7 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
                                gen.Call(name);
                             else SemErr("object is not a procedure");
                          .)
+
   )
 
 | "if"                   (. int l1, l2; l1 = 0; .)
@@ -336,7 +337,7 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
                             }
                             else SemErr("boolean type expected");
                          .)
-      
+      Stat
                (.
                             l2 = gen.NewLabel();
                             gen.Branch(l2);
@@ -393,6 +394,54 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
 			gen.Branch(loop);
 			gen.Label(exit);  
 		  .)                 
+
+| "switch"		
+	 "("
+		Expr<out reg, out type>
+ 	   ")"
+				(. int reg1, type1, reg2, type2, break;
+				   int l1=0; int l2=1; break =0;
+				   Obj holder = gen.newObj("switchVal", var, integer, 0);
+				if(type != integer){ 
+					SemErr ("The Switch acts on an Integer, Incorrect type Entered");
+				}
+				  if(obj.level ==0){
+					gen.StoreGlobal(reg, obj.adr, name);
+				}
+				else{
+					gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr , "switchVal");
+				}
+				.)
+	
+
+	"{"
+	{
+		"case" Expr<out reg1, out type1>
+			(.
+				if(type1 != integer){
+					SemErr("Incorrect type");
+				}
+				gen.RelOp(Op.EQU, reg, reg1);
+				l2 = gen.NewLabel();
+				gen.BranchFalse(l2);
+			.)
+			":"
+				[Stat]
+			["break"	(. gen.Branch(break); .) ]
+	}
+	[	"default" ":"
+		[Stat]
+		[ "break" 	(. gen.Branch(break);	.)	]
+		
+				
+				
+				
+				
+                                
+				
+			.)
+	}
+			
 
 | "read"
   Ident<out name> ';'    (.
