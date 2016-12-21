@@ -214,9 +214,10 @@ SimExpr<out int reg,     //load value of SimExpr into register
                             else SemErr("integer type expected");
                          .)
   }
-.
+.				
 
 /*-------------------------------------------------------------------------------------------*/
+
 
 Stat                     (. int type; string name; Obj obj; int reg = 0, index1 = 0; string arrayName;  .)
 = Ident<out name>        (. obj = tab.Find(name); .)
@@ -498,5 +499,7 @@ ConstantDecl             (. string name; int type; .)
     Ident<out name>      (. tab.NewObj(name, constant, type, -1); .)
   }";"
 .
+
+/*-------------------------------------------------------------------------------------------*/
 
 END Tastier.
