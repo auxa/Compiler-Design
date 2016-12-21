@@ -68,12 +68,6 @@ SumUpBody
 L3
     LDR     R0, =1
     LDR     R5, [R4, R0, LSL #2] ; place
-    LDR     R6, =1
-    ADD     R5, R5, R6
-    LDR     R0, =1
-    STR     R5, [R4, R0, LSL #2] ; place
-    LDR     R0, =1
-    LDR     R5, [R4, R0, LSL #2] ; place
     LDR     R0, =2
     LDR     R6, [R4, R0, LSL #2] ; limit
     CMP     R5, R6
@@ -81,6 +75,12 @@ L3
     MOVGT   R5, #0
     MOVS    R5, R5          ; reset Z flag in CPSR
     BEQ     L0              ; jump on condition false
+    LDR     R0, =1
+    LDR     R5, [R4, R0, LSL #2] ; place
+    LDR     R6, =1
+    ADD     R5, R5, R6
+    LDR     R0, =1
+    STR     R5, [R4, R0, LSL #2] ; place
     LDR     R0, =3
     LDR     R5, [R4, R0, LSL #2] ; doThis
     LDR     R6, =1

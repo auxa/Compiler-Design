@@ -543,7 +543,6 @@ out type);
 			      loop=gen.NewLabel();
 			gen.Label(loop); exit=0;
 			
-			Stat();
 			Expr(out reg, 
 out type);
 			if(type==boolean){
@@ -554,6 +553,8 @@ out type);
 			}
 			
 			
+			Expect(29);
+			Stat();
 			Expect(9);
 			Expect(34);
 			Expect(16);

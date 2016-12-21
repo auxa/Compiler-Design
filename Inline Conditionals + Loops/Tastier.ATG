@@ -370,7 +370,6 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
 			        loop=gen.NewLabel();
 				gen.Label(loop); exit=0;
 			.)
-   Stat
    Expr<out reg, 
   	out type>
 			(.
@@ -381,7 +380,11 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
 					SemErr("Bool expected");
 				}
 
-				.) ")"
+				.) 
+	";"
+	Stat
+	")"
+	
 
 	"do" "{" Stat "}"
 

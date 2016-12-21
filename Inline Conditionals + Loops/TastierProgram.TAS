@@ -30,7 +30,7 @@ program Test {
       
       limit :=5;
       doThis:=1;
-      for (place:=1; place:=place+1; place<=limit)
+      for (place:=1; place<=limit; place:=place+1; )
       do { doThis := doThis+1; } 
 
      
