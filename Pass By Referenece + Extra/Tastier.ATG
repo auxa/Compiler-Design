@@ -217,7 +217,18 @@ SimExpr<out int reg,     //load value of SimExpr into register
 .				
 
 /*-------------------------------------------------------------------------------------------*/
+/*
+Most of the new things added to the lnaguage were added in the Stat Section
 
+Arrays
+-> Arrays can be declared here
+-> eg. int[5] array; Where 5 is the size of the array
+-> They then can be declared any length here. The number is parsed and the index is defined.
+-> Assigning a number to a variable also occurs here.
+-> We can assign an index a value here eg array[3] = 12;
+-> Here 12 will be assigned to the index.
+-> Arrays can be declared at any level.
+*/
 
 Stat                     (. int type; string name; Obj obj; int reg = 0, index1 = 0; string arrayName;  .)
 = Ident<out name>        (. obj = tab.Find(name); .)
@@ -279,6 +290,15 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
                                       obj.assigned = true;
                               }
                            .)
+/*
+Inline Conditonal Statement
+
+Here an inline condtional is declared. 
+If the value of the boolean in the expression
+ is true the value in the first section after the condtional is assigned to the variable.
+Otherwise the second value is assigned to the variable. 
+Follows the from of the if statement defiend below.
+*/
 
 | '<' Expr<out reg,
         out type> '>' '?' (.
@@ -365,6 +385,13 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
                             gen.Label(l2);
                          .)
 
+/* 
+For loop follows the normal for loop format (normal being the same as C99!)
+The stat in the do part of the for loop is executed the amount of times as required 
+until the condition is false. Then the for loop exits
+A counter is updated every time the loop occurs.
+*/ 
+
 
 | "for" "("              
    Stat			(. 	
@@ -394,7 +421,15 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
 			gen.Branch(loop);
 			gen.Label(exit);  
 		  .)                 
+/*
+Switch Statement
 
+The Swicth statment takes in an expr and uses that as the base value.
+This base value is then compared aganist 1 or more cases.
+Of the case value and base value match then the associated Stat is executed.
+Otherwise a default case may be defined. If it is the default value is taken if no matches occut.
+
+*/
 | "switch"		
 	 '('
 		Expr<out reg, out type>
@@ -508,7 +543,10 @@ Type<out int type>
 .
 
 /*-------------------------------------------------------------------------------------------*/
-
+/*
+Variable declaration was alteres to allow for arrays to be declared as varibles.
+This was is more similar to normal programming languages rather than creating a new Decl for arrays/
+*/
 VarDecl                  (. string name; int type, size= -1; .)
 = Type<out type>
   [
@@ -522,6 +560,11 @@ VarDecl                  (. string name; int type, size= -1; .)
   ";"
 .
 /*-------------------------------------------------------------------------------------------*/
+/*
+Const Decl is where constants are defined
+If a constant is defined its type is constant and its value is made immutable. 
+
+*/
 ConstantDecl             (. string name; int type; .)
 = "const" 
   Type<out type>
