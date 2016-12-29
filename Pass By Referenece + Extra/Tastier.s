@@ -14,6 +14,21 @@ Subtract
     LDR     R1, =0          ; number of local variables
     BL      enter           ; build new stack frame
     B       SubtractBody
+; Procedure Assign
+AssignBody
+    LDR     R5, =1
+    MOV     R2, BP          ; load current base pointer
+    LDR     R2, [R2,#8]
+    ADD     R2, R2,#16
+    STR     R5, [R2]        ; j
+    MOV     TOP, BP         ; reset top of stack
+    LDR     BP, [TOP,#12]   ; and stack base pointers
+    LDR     PC, [TOP]       ; return from Assign
+Assign
+    LDR     R0, =2          ; current lexic level
+    LDR     R1, =0          ; number of local variables
+    BL      enter           ; build new stack frame
+    B       AssignBody
 ; Procedure Add
 AddBody
     LDR     R2, =4
@@ -45,6 +60,12 @@ AddBody
     ADD     R0, PC, #4      ; store return address
     STR     R0, [TOP]       ; in new stack frame
     B       Add
+    MOV     R2, BP          ; load current base pointer
+    LDR     R2, [R2,#8]
+    ADD     R2, R2,#16
+    ADD     R0, PC, #4      ; store return address
+    STR     R0, [TOP]       ; in new stack frame
+    B       Assign
     B       L2
 L1
 L2
@@ -201,6 +222,7 @@ SumUp
 ;Name:j Const:False Type:intr Kind:var, Level:local
 ;Name:sum Const:False Type:intr Kind:var, Level:local
 ;Name:Subtract Const:False Type:undef Kind:proc, Level:local
+;Name:Assign Const:False Type:undef Kind:const, Level:local
 ;Name:Add Const:False Type:undef Kind:proc, Level:local
 MainBody
     ADD     R0, PC, #4      ; string address

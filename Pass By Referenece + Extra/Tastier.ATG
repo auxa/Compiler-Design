@@ -1,10 +1,10 @@
 COMPILER Tastier
 
    const int // object kinds
-      var = 0, proc = 1, constant =3, array =4;
+      var = 0, proc = 1, constant =3, array =4, varProc =5;
 
    const int // types
-      undef = 0, integer = 1, boolean = 2;
+      undef = 0, integer = 1, boolean = 2, address =3;
 
    public SymbolTable tab;
    public CodeGenerator gen;
@@ -117,6 +117,19 @@ Primary<out int reg,     // load Primary into register
     Expr<out reg,
          out type>
     ')'
+/*
+The below function should load the address of the object into a variable to be used later in the program
+*/
+  | '&'
+	Ident<out name>  (. obj = tab.Find(name);
+				type = address;
+				if(obj.level == 0){
+					gen.LoadGlobalAddress(obj.adr);
+				}
+				else{
+					gen.LoadLocalAddress(tab.curLevel-obj.level, obj.adr);
+				}
+				.)			    
 
   )
 .
@@ -144,9 +157,15 @@ MulOp<out Op op>
 .
 
 /*-------------------------------------------------------------------------------------------*/
+/*
+Pass by reference declared here.
+If when a fucntion is called there is a paramater passed into the function then a different branch in the 
+decision tree is taken.
 
+We enter to the "adrStat" which uses the address of the parameter if the paramater is an address.
+*/
 ProcDecl<string progName>
-                         (. Obj obj; string procName; .)
+                         (. Obj obj; string procName, varName; .)
 = "void"
   Ident<out procName>    (.
                             obj = tab.NewObj(procName, proc, undef, -1);
@@ -156,8 +175,8 @@ ProcDecl<string progName>
                                else SemErr("main not at lexic level 0");
                             tab.OpenScope();
                          .)
-  '(' ')'
-  '{'
+ ( '(' ')'
+  "{"
      { 
       ConstantDecl
      }
@@ -175,7 +194,7 @@ ProcDecl<string progName>
                             }
                          .)
      Stat { Stat }
-  '}'                    (.
+  "}"                    (.
                             if (procName == "main") {
                                gen.StopProgram(progName);
                                gen.Enter("Main", tab.curLevel, tab.topScope.nextAdr);
@@ -185,6 +204,42 @@ ProcDecl<string progName>
                             }
                             tab.CloseScope();
                          .)
+   | 	Ident<out varName>
+     
+
+  "{"
+     {
+      ConstantDecl
+     }
+     {
+      VarDecl 
+     }
+     {
+      ProcDecl<progName>
+     }     
+	 (.
+			 obj.kind = varProc;			//Change it's kind to a var proc to note the parameter
+                            if (procName == "main")
+                               gen.Label("Main", "Body");
+                            else {
+                               gen.ProcNameComment(procName);
+                               gen.Label(procName, "Body");
+                            }
+                         .)
+
+      AdrStat<varName> { AdrStat<varName> }		//Allow A stat to be declared which can act on the address
+  
+	"}"                    (.
+                            if (procName == "main") {
+                               gen.StopProgram(progName);
+                               gen.Enter("Main", tab.curLevel, tab.topScope.nextAdr);
+                            } else {
+                               gen.Return(procName);
+                               gen.Enter(procName, tab.curLevel, tab.topScope.nextAdr);
+                            }
+                            tab.CloseScope();
+                         .)
+)
 .
 
 /*-------------------------------------------------------------------------------------------*/
@@ -214,7 +269,48 @@ SimExpr<out int reg,     //load value of SimExpr into register
                             else SemErr("integer type expected");
                          .)
   }
-.				
+.	
+/*-------------------------------------------------------------------------------------------*/
+/*
+When a pass by reference call is made it goes to here.
+When it reaches to here it checks 
+*/
+AdrStat<string nameOfAdr>               (. int type; string name; Obj obj, obj2; int reg = 0, index1 = 0; string arrayName;  .)
+= Ident<out name>        (. obj = tab.Find(name); obj2 = tab.Find(nameOfAdr); .)
+ 			(. if(nameOfAdr == name && obj2.type == address ){
+				obj = tab.Find(nameOfAdr);
+			}
+			.)
+ (":="               
+			  (.
+                            if (obj.kind == proc || (obj.kind == constant && obj.assigned) ){
+				if(obj.kind != constant)
+                                        SemErr("cannot assign to procedure");
+				else
+					SemErr("Cannot re-asign already assigned constant");
+				}	
+                         .)
+   ( Expr<out reg,
+         out type>    (.
+                           if(obj.type == address){
+				 gen.LoadLocalAddress(tab.curLevel-obj.level, obj.adr);
+				gen.StoreLocalValue(reg, name);
+			}else{
+			if (type == obj.type){
+                               if (obj.level == 0)
+                                        gen.StoreGlobal(reg, obj.adr, name);
+                               else 
+					gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+				}
+				if(obj.kind == constant){
+			      	   obj.assigned=true;
+				}
+			}
+                         .)
+	)
+	";"
+	)
+.
 
 /*-------------------------------------------------------------------------------------------*/
 /*
@@ -230,7 +326,7 @@ Arrays
 -> Arrays can be declared at any level.
 */
 
-Stat                     (. int type; string name; Obj obj; int reg = 0, index1 = 0; string arrayName;  .)
+Stat                     (. int type; string name, procName; Obj obj; int reg = 0, index1 = 0; string arrayName;  .)
 = Ident<out name>        (. obj = tab.Find(name); .)
   [
     "["
@@ -262,7 +358,7 @@ Stat                     (. int type; string name; Obj obj; int reg = 0, index1 
 			      	   obj.assigned=true;
 				}
                          .)
-
+	
         | "["                (. int arrayIndex = 0; .)
           number             (. index1 = Convert.ToInt32(t.val); .)
           "]"
@@ -345,8 +441,18 @@ Follows the from of the if statement defiend below.
                                gen.Call(name);
                             else SemErr("object is not a procedure");
                          .)
+/*
+Calls the procedure with a variable address passed into it.
+*/
+   | '&' Ident<out procName>  ';'          (.
+                            if (obj.kind == varProc)
+                               gen.Call(name);
+                            else SemErr("object is not a procedure");
+                         .)
+
 
   )
+  
 
 | "if"                   (. int l1, l2; l1 = 0; .)
   Expr<out reg,

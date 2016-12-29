@@ -14,19 +14,26 @@ program Test {
    void SumUp() {
       int j;
       int sum;
+      
 
-      void Subtract() {
+      void Subtract()
+      {
          i := i - 1;
       }
-
+      void Assign j 
+      {
+	j := 1;
+      }
       void Add() {
          if i > 0 {
             sum := sum + i;
             Subtract();
             Add();
+	    j := &j;
+	    Assign &j;
          }
       }
-
+     
 
       
       limit :=5;
